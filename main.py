@@ -15,19 +15,38 @@ ROAST = (
 )
 
 
+def validate(line: str) -> str:
+    """Enforce the gate the sealed scorer applies: 1-200 characters,
+    a single line, and more than whitespace."""
+    text = line.strip()
+    if not text:
+        raise ValueError("roast line is empty")
+    if len(text) > 200:
+        raise ValueError(f"roast line is {len(text)} characters, over 200")
+    if "\n" in text or "\r" in text:
+        raise ValueError("roast line must be a single line")
+    return text
+
+
 def main() -> int:
     # The grader mounts the output directory at /output and also sets
     # MAKEFUN_OUTPUT_DIR; a plain local run uses ./out so the file can
     # be inspected without root.
     out_dir = os.environ.get("MAKEFUN_OUTPUT_DIR", "/output")
-    line = ROAST.strip()
-    if not line or len(line) > 200:
-        print("roast line is empty or over 200 characters", file=sys.stderr)
+    try:
+        line = validate(ROAST)
+    except ValueError as exc:
+        print(f"invalid roast line: {exc}", file=sys.stderr)
         return 1
     os.makedirs(out_dir, exist_ok=True)
     path = os.path.join(out_dir, "entry.txt")
     with open(path, "w", encoding="utf-8", newline="\n") as fh:
         fh.write(line + "\n")
+    written = open(path, encoding="utf-8").read()
+    if written != line + "\n":
+        print("round-trip check failed: file differs from the roast line",
+              file=sys.stderr)
+        return 1
     print(f"wrote {len(line)} characters to {path}")
     return 0
 
